@@ -1,35 +1,83 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import './App.css';
+import DateTimePicker from 'react-datetime-picker';
+import { useState } from 'react';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [start, setStart] = useState(new Date());
+  const [end, setEnd] = useState(new Date());
+  const [eventName, setEventName] = useState("");
+  const [eventDescription, setEventDescription] = useState("");
+  const [user, setUser] = useState(null);
+
+  async function googleSignIn() {
+    try {
+      const response = await fetch('http://localhost:4000/api/signin', {
+        method: 'POST',
+        credentials: 'include', // Ensure cookies are included
+      });
+      const data = await response.json();
+      if (data.user) {
+        setUser(data.user);
+        alert("Signed in successfully!");
+      } else {
+        throw new Error("Sign-in failed");
+      }
+    } catch (error) {
+      alert("Error logging in to Google");
+      console.error(error);
+    }
+  }
+
+  async function createCalendarEvent() {
+    const eventDetails = {
+      eventName,
+      eventDescription,
+      start: start.toISOString(),
+      end: end.toISOString(),
+    };
+
+    try {
+      const response = await fetch('http://localhost:4000/api/create-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(eventDetails),
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert("Event created successfully, check your Google Calendar!");
+      } else {
+        throw new Error(data.error || "Event creation failed");
+      }
+    } catch (error) {
+      alert("Error creating calendar event");
+      console.error(error);
+    }
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="App">
+      <div style={{ width: "400px", margin: "30px auto" }}>
+        {user ? (
+          <>
+            <h2>Hey there, {user.email}</h2>
+            <p>Start of your event</p>
+            <DateTimePicker onChange={setStart} value={start} />
+            <p>End of your event</p>
+            <DateTimePicker onChange={setEnd} value={end} />
+            <p>Event name</p>
+            <input type="text" onChange={(e) => setEventName(e.target.value)} />
+            <p>Event description</p>
+            <input type="text" onChange={(e) => setEventDescription(e.target.value)} />
+            <hr />
+            <button onClick={createCalendarEvent}>Create Calendar Event</button>
+          </>
+        ) : (
+          <button onClick={googleSignIn}>Sign In With Google</button>
+        )}
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    </div>
+  );
 }
 
-export default App
+export default App;
